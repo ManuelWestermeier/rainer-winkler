@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Canvas Image Storm – Rainer Winkler – Fullscreen + Generated Audio</title>
+<title>Canvas Image Storm – Rainer Winkler – INSANE AUDIO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html, body {
@@ -13,9 +13,7 @@ html, body {
   overflow: hidden;
   background: black;
 }
-canvas {
-  display: block;
-}
+canvas { display: block; }
 #hint {
   position: fixed;
   bottom: 10px;
@@ -26,9 +24,7 @@ canvas {
   opacity: 0.6;
   pointer-events: none;
 }
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -39,186 +35,144 @@ canvas {
 "use strict";
 
 /* ======================
-   GLOBAL ERROR LOGGING
-   ====================== */
-window.onerror = (m,s,l,c,e)=>console.error("WINDOW ERROR",m,s,l,c,e);
-window.onunhandledrejection = e=>console.error("PROMISE ERROR",e.reason);
-
-/* ======================
-   CANVAS
+   CANVAS + FULLSCREEN
    ====================== */
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const hint = document.getElementById("hint");
 
-function resize() {
+function resize(){
   canvas.width = innerWidth;
   canvas.height = innerHeight;
 }
 addEventListener("resize", resize);
 resize();
 
-/* ======================
-   FULLSCREEN
-   ====================== */
-const hint = document.getElementById("hint");
-
-function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen()
-      .then(() => {
-        hint.classList.add("hidden");
-        startGeneratedAudio();
-      })
-      .catch(e => console.error("FULLSCREEN FAILED", e));
-  } else {
-    document.exitFullscreen().catch(e=>console.error(e));
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().then(()=>{
+      hint.classList.add("hidden");
+      startGeneratedAudio();
+    });
   }
 }
-
-document.addEventListener("keydown", e => {
-  if (e.key === "f" || e.key === "F") toggleFullscreen();
+addEventListener("keydown", e=>{
+  if(e.key==="f"||e.key==="F") toggleFullscreen();
 });
-
-document.addEventListener("pointerdown", () => {
-  if (!document.fullscreenElement) toggleFullscreen();
+addEventListener("pointerdown", ()=>{
+  toggleFullscreen();
   startGeneratedAudio();
 });
 
-document.addEventListener("fullscreenchange", resize);
-
 /* ======================
-   IMAGE LOADING (CORS)
+   IMAGES (CORS)
    ====================== */
-const PROXY = "https://corsproxy.io/?";
-const RAW_IMAGES = [
+const PROXY="https://corsproxy.io/?";
+const RAW_IMAGES=[
   "https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp",
   "https://www.watson.ch/imgdb/1ac5/Qx,A,0,0,768,432,320,180,128,72/3037309909412135",
   "https://i.etsystatic.com/54136756/r/il/e05fa7/7019977722/il_1588xN.7019977722_a2es.jpg",
   "https://www.merkur.de/assets/images/27/311/27311552-rainer-winkler-drachenlord-youtube-screenshot-hate-speech-2H6T5427XkMH.jpg"
 ];
-
-const images = [];
-let readyImages = 0;
-
-RAW_IMAGES.forEach((url, i) => {
-  const img = new Image();
-  img.onload = () => readyImages++;
-  img.onerror = e => console.error("IMAGE FAIL", url, e);
-  img.src = PROXY + encodeURIComponent(url);
-  images.push(img);
+const images=[];
+let readyImages=0;
+RAW_IMAGES.forEach(u=>{
+  const i=new Image();
+  i.onload=()=>readyImages++;
+  i.src=PROXY+encodeURIComponent(u);
+  images.push(i);
 });
 
 /* ======================
-   GENERATED WAV AUDIO
+   GENERATED WAV – CRAZY
    ====================== */
-const SAMPLE_RATE = 44100;
-const DURATION = 60;
-const TOTAL = SAMPLE_RATE * DURATION;
+const SR=44100;
+const DUR=60;
+const TOTAL=SR*DUR;
+let audioEl=null;
 
-let audioURL = null;
-let audioEl = null;
+const clamp=v=>Math.max(-1,Math.min(1,v));
 
-function clamp(v){ return Math.max(-1, Math.min(1, v)); }
-
-function encodeWAV(samples) {
-  const buffer = new ArrayBuffer(44 + samples.length * 2);
-  const view = new DataView(buffer);
-
-  const write = (o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i,s.charCodeAt(i)); };
-
-  write(0,"RIFF");
-  view.setUint32(4,36+samples.length*2,true);
-  write(8,"WAVE");
-  write(12,"fmt ");
-  view.setUint32(16,16,true);
-  view.setUint16(20,1,true);
-  view.setUint16(22,1,true);
-  view.setUint32(24,SAMPLE_RATE,true);
-  view.setUint32(28,SAMPLE_RATE*2,true);
-  view.setUint16(32,2,true);
-  view.setUint16(34,16,true);
-  write(36,"data");
-  view.setUint32(40,samples.length*2,true);
-
+function encodeWAV(samples){
+  const b=new ArrayBuffer(44+samples.length*2);
+  const v=new DataView(b);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  w(0,"RIFF");v.setUint32(4,36+samples.length*2,true);
+  w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);
+  v.setUint16(32,2,true);v.setUint16(34,16,true);
+  w(36,"data");v.setUint32(40,samples.length*2,true);
   let o=44;
   for(let i=0;i<samples.length;i++,o+=2)
-    view.setInt16(o,samples[i]*0x7fff,true);
-
-  return new Blob([buffer],{type:"audio/wav"});
+    v.setInt16(o,samples[i]*0x7fff,true);
+  return new Blob([b],{type:"audio/wav"});
 }
 
-function generateWav() {
-  const data = new Float32Array(TOTAL);
-  const scale = [110,147,196,220,247,294,330,392];
-  let freq = scale[(Math.random()*scale.length)|0];
-  let phase = 0;
+function generateInsaneWav(){
+  const d=new Float32Array(TOTAL);
+  const scale=[55,73,110,147,196,220,294,392,440];
+  let f=scale[(Math.random()*scale.length)|0];
+  let ph=0, peak=1;
 
   for(let i=0;i<TOTAL;i++){
-    const t=i/SAMPLE_RATE;
-    if(Math.random()<1/(SAMPLE_RATE*0.8))
-      freq = scale[(Math.random()*scale.length)|0]*(Math.random()<0.2?2:1);
+    const t=i/SR;
 
-    phase+=2*Math.PI*freq/SAMPLE_RATE;
-    let s=Math.sin(phase);
-    let n=(Math.random()*2-1)*0.5;
-    let lfo=Math.sin(t*2*Math.PI*0.25);
-    let v=(s*(0.6+lfo*0.4)+n);
-    v=Math.tanh(v*3);
-    v*=0.8+0.2*Math.sin(t*2*Math.PI*0.05);
-    data[i]=clamp(v);
+    if(Math.random()<1/(SR*0.15)) f=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?4:1);
+    if(Math.random()<1/(SR*0.5)) peak=3+Math.random()*6;
+
+    ph+=2*Math.PI*f/SR;
+    let s=Math.sin(ph)+Math.sin(ph*0.5)*0.7;
+    let n=(Math.random()*2-1)*0.9;
+
+    let v=s*1.5+n;
+    v*=peak*(0.6+Math.sin(t*40)*0.4);
+
+    // wavefold + hard clip
+    v=Math.sin(v*3);
+    v=Math.tanh(v*4);
+
+    d[i]=clamp(v);
+    peak*=0.9995;
   }
-
-  return encodeWAV(data);
+  return encodeWAV(d);
 }
 
-function startGeneratedAudio() {
-  if (audioEl) {
+function startGeneratedAudio(){
+  if(audioEl){
     audioEl.play().catch(()=>{});
     return;
   }
-
-  const blob = generateWav();
-  audioURL = URL.createObjectURL(blob);
-  audioEl = new Audio(audioURL);
-  audioEl.loop = true;
-  audioEl.volume = 1.0;
-
-  audioEl.play()
-    .then(()=>console.log("GENERATED AUDIO PLAYING"))
-    .catch(e=>console.error("AUDIO BLOCKED",e));
+  const blob=generateInsaneWav();
+  const url=URL.createObjectURL(blob);
+  audioEl=new Audio(url);
+  audioEl.loop=true;
+  audioEl.volume=1.0;
+  audioEl.play().catch(()=>{});
 }
-
-/* ======================
-   RANDOM
-   ====================== */
-const R=(a,b)=>Math.random()*(b-a)+a;
-const RI=(a,b)=>(Math.random()*(b-a+1)|0)+a;
 
 /* ======================
    PARTICLES
    ====================== */
-const MAX=3000, ADD=40;
+const R=(a,b)=>Math.random()*(b-a)+a;
+const RI=(a,b)=>(Math.random()*(b-a+1)|0)+a;
+const MAX=3000,ADD=40;
 const parts=[];
 
-class Particle{
+class P{
   constructor(){this.reset();}
   reset(){
     this.x=R(0,canvas.width);
     this.y=R(0,canvas.height);
-    this.vx=R(-2,2);
-    this.vy=R(-2,2);
-    this.r=R(0,Math.PI*2);
-    this.rs=R(-0.06,0.06);
+    this.vx=R(-2,2);this.vy=R(-2,2);
+    this.r=R(0,Math.PI*2);this.rs=R(-0.06,0.06);
     this.s=R(30,180);
-    this.life=RI(300,1400);
-    this.max=this.life;
+    this.life=RI(300,1400);this.max=this.life;
     this.fx=RI(0,3);
     this.img=images[RI(0,images.length-1)];
   }
   update(){
-    this.x+=this.vx;
-    this.y+=this.vy;
-    this.r+=this.rs;
+    this.x+=this.vx;this.y+=this.vy;this.r+=this.rs;
     if(--this.life<=0) this.reset();
   }
   draw(){
@@ -244,19 +198,13 @@ class Particle{
 function loop(){
   ctx.fillStyle="#000";
   ctx.fillRect(0,0,canvas.width,canvas.height);
-  for(let i=0;i<ADD && parts.length<MAX;i++) parts.push(new Particle());
-  for(const p of parts){ p.update(); p.draw(); }
+  for(let i=0;i<ADD&&parts.length<MAX;i++) parts.push(new P());
+  for(const p of parts){p.update();p.draw();}
   requestAnimationFrame(loop);
 }
 
-/* ======================
-   START
-   ====================== */
 const wait=setInterval(()=>{
-  if(readyImages>0){
-    clearInterval(wait);
-    loop();
-  }
+  if(readyImages>0){clearInterval(wait);loop();}
 },200);
 </script>
 </body>
