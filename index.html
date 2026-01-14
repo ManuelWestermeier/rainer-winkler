@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Canvas Image Storm – CORS SAFE</title>
+<title>Canvas Image Storm – CORS + Fullscreen</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html, body {
@@ -16,10 +16,21 @@ html, body {
 canvas {
   display: block;
 }
+#hint {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  color: #0f0;
+  font-family: monospace;
+  font-size: 12px;
+  opacity: 0.6;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
 <canvas id="canvas"></canvas>
+<div id="hint">Click or press F for fullscreen</div>
 
 <script>
 "use strict";
@@ -39,11 +50,39 @@ const ctx = canvas.getContext("2d");
 function resize() {
   canvas.width = innerWidth;
   canvas.height = innerHeight;
+  console.log("RESIZE", canvas.width, canvas.height);
 }
 addEventListener("resize", resize);
 resize();
 
-console.log("Canvas OK", canvas.width, canvas.height);
+/* ======================
+   FULLSCREEN
+   ====================== */
+function isFullscreen() {
+  return document.fullscreenElement;
+}
+
+function toggleFullscreen() {
+  if (!isFullscreen()) {
+    document.documentElement.requestFullscreen()
+      .then(() => console.log("ENTER FULLSCREEN"))
+      .catch(e => console.error("FULLSCREEN FAILED", e));
+  } else {
+    document.exitFullscreen()
+      .then(() => console.log("EXIT FULLSCREEN"))
+      .catch(e => console.error("EXIT FULLSCREEN FAILED", e));
+  }
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "f" || e.key === "F") toggleFullscreen();
+});
+
+document.addEventListener("pointerdown", () => {
+  if (!isFullscreen()) toggleFullscreen();
+});
+
+document.addEventListener("fullscreenchange", resize);
 
 /* ======================
    IMAGE LOADING (CORS)
@@ -79,47 +118,41 @@ const RI = (a,b)=>(Math.random()*(b-a+1)|0)+a;
 /* ======================
    PARTICLES
    ====================== */
-const MAX = 2500;
-const ADD = 30;
+const MAX = 3000;
+const ADD = 40;
 const parts = [];
 
 class Particle {
   reset() {
     this.x = R(0, canvas.width);
     this.y = R(0, canvas.height);
-    this.vx = R(-1.5,1.5);
-    this.vy = R(-1.5,1.5);
+    this.vx = R(-2,2);
+    this.vy = R(-2,2);
     this.r = R(0,Math.PI*2);
-    this.rs = R(-0.05,0.05);
-    this.s = R(30,160);
-    this.life = RI(300,1200);
+    this.rs = R(-0.06,0.06);
+    this.s = R(30,180);
+    this.life = RI(300,1400);
     this.max = this.life;
     this.fx = RI(0,3);
     this.img = images[RI(0, images.length-1)];
   }
-
   constructor(){ this.reset(); }
-
   update(){
     this.x+=this.vx;
     this.y+=this.vy;
     this.r+=this.rs;
     if(--this.life<=0) this.reset();
   }
-
   draw(){
     if(!this.img.complete) return;
-
     const t=this.life/this.max;
     ctx.save();
     ctx.translate(this.x,this.y);
     ctx.rotate(this.r);
-
     if(this.fx===0) ctx.globalAlpha=t;
     if(this.fx===1) ctx.scale(1+Math.sin(t*6)*0.3,1);
     if(this.fx===2) ctx.globalCompositeOperation="lighter";
     if(this.fx===3) ctx.scale(1,t+0.2);
-
     ctx.drawImage(this.img,-this.s/2,-this.s/2,this.s,this.s);
     ctx.restore();
     ctx.globalAlpha=1;
@@ -134,10 +167,8 @@ function loop(){
   try {
     ctx.fillStyle="#000";
     ctx.fillRect(0,0,canvas.width,canvas.height);
-
     for(let i=0;i<ADD && parts.length<MAX;i++)
       parts.push(new Particle());
-
     for(const p of parts){
       p.update();
       p.draw();
@@ -155,11 +186,10 @@ const wait = setInterval(()=>{
   console.log("IMAGE STATUS", readyImages, "/", images.length);
   if(readyImages>0){
     clearInterval(wait);
-    console.log("STARTING LOOP");
+    console.log("START LOOP");
     loop();
   }
 },200);
-
 </script>
 </body>
 </html>
