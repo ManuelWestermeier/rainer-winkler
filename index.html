@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Canvas Image Storm – CORS + Fullscreen</title>
+<title>Canvas Image Storm – CORS + Fullscreen + Sound</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html, body {
@@ -26,11 +26,14 @@ canvas {
   opacity: 0.6;
   pointer-events: none;
 }
+.hidden {
+  display: none;
+}
 </style>
 </head>
 <body>
 <canvas id="canvas"></canvas>
-<div id="hint">Click or press F for fullscreen</div>
+<div id="hint">Click oder F drücken für Fullscreen</div>
 
 <script>
 "use strict";
@@ -50,7 +53,6 @@ const ctx = canvas.getContext("2d");
 function resize() {
   canvas.width = innerWidth;
   canvas.height = innerHeight;
-  console.log("RESIZE", canvas.width, canvas.height);
 }
 addEventListener("resize", resize);
 resize();
@@ -58,14 +60,16 @@ resize();
 /* ======================
    FULLSCREEN
    ====================== */
-function isFullscreen() {
-  return document.fullscreenElement;
-}
+const hint = document.getElementById("hint");
 
 function toggleFullscreen() {
-  if (!isFullscreen()) {
+  if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
-      .then(() => console.log("ENTER FULLSCREEN"))
+      .then(() => {
+        console.log("ENTER FULLSCREEN");
+        hint.classList.add("hidden");
+        startAudio();
+      })
       .catch(e => console.error("FULLSCREEN FAILED", e));
   } else {
     document.exitFullscreen()
@@ -75,11 +79,13 @@ function toggleFullscreen() {
 }
 
 document.addEventListener("keydown", e => {
-  if (e.key === "f" || e.key === "F") toggleFullscreen();
+  if (e.key === "f" || e.key === "F") {
+    toggleFullscreen();
+  }
 });
 
 document.addEventListener("pointerdown", () => {
-  if (!isFullscreen()) toggleFullscreen();
+  if (!document.fullscreenElement) toggleFullscreen();
 });
 
 document.addEventListener("fullscreenchange", resize);
@@ -102,12 +108,58 @@ RAW_IMAGES.forEach((url, i) => {
   const img = new Image();
   img.onload = () => {
     readyImages++;
-    console.log("IMAGE OK", i, img.width, img.height);
+    console.log("IMAGE OK", i);
   };
   img.onerror = e => console.error("IMAGE FAIL", i, url, e);
   img.src = PROXY + encodeURIComponent(url);
   images.push(img);
 });
+
+/* ======================
+   AUDIO (RANDOM)
+   ====================== */
+const AUDIO_URLS = [
+  "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
+  "https://actions.google.com/sounds/v1/cartoon/boing.ogg",
+  "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
+  "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
+];
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const audioBuffers = [];
+let audioStarted = false;
+
+function loadSound(url) {
+  fetch(url)
+    .then(r => r.arrayBuffer())
+    .then(b => audioCtx.decodeAudioData(b))
+    .then(buf => {
+      audioBuffers.push(buf);
+      console.log("SOUND OK", url);
+    })
+    .catch(e => console.error("SOUND FAIL", url, e));
+}
+
+AUDIO_URLS.forEach(loadSound);
+
+function playRandomSound() {
+  if (!audioStarted || audioBuffers.length === 0) return;
+  const src = audioCtx.createBufferSource();
+  src.buffer = audioBuffers[(Math.random() * audioBuffers.length) | 0];
+  src.connect(audioCtx.destination);
+  src.start();
+}
+
+function startAudio() {
+  if (audioStarted) return;
+  audioCtx.resume().then(() => {
+    audioStarted = true;
+    console.log("AUDIO STARTED");
+    setInterval(() => {
+      if (Math.random() < 0.4) playRandomSound();
+    }, 500 + Math.random() * 1000);
+  });
+}
 
 /* ======================
    RANDOM
@@ -183,10 +235,8 @@ function loop(){
    START
    ====================== */
 const wait = setInterval(()=>{
-  console.log("IMAGE STATUS", readyImages, "/", images.length);
   if(readyImages>0){
     clearInterval(wait);
-    console.log("START LOOP");
     loop();
   }
 },200);
