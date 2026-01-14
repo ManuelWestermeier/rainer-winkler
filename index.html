@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fullscreen Canvas Image Storm</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
+  }
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<script>
+(() => {
+  "use strict";
+
+  const IMAGE_URLS = [
+    "https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp",
+    "https://www.watson.ch/imgdb/1ac5/Qx,A,0,0,768,432,320,180,128,72/3037309909412135",
+    "https://i.etsystatic.com/54136756/r/il/e05fa7/7019977722/il_1588xN.7019977722_a2es.jpg",
+    "https://www.merkur.de/assets/images/27/311/27311552-rainer-winkler-drachenlord-youtube-screenshot-hate-speech-2H6T5427XkMH.jpg"
+  ];
+
+  const MAX_ENTITIES = 3000;        // Tausende effizient
+  const SPAWN_PER_FRAME = 20;       // kontrollierte Erzeugung
+  const BASE_SIZE = 40;
+  const SIZE_VARIANCE = 120;
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d", { alpha: false });
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // Bilder vorladen
+  const images = [];
+  let loaded = 0;
+
+  IMAGE_URLS.forEach(url => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => loaded++;
+    img.src = url;
+    images.push(img);
+  });
+
+  function rand(min, max) {
+    return Math.random() * (max - min) + min;
+  }
+
+  function randInt(min, max) {
+    return (Math.random() * (max - min + 1) | 0) + min;
+  }
+
+  class Entity {
+    constructor() {
+      this.reset();
+    }
+
+    reset() {
+      this.x = rand(0, canvas.width);
+      this.y = rand(0, canvas.height);
+      this.vx = rand(-0.5, 0.5);
+      this.vy = rand(-0.5, 0.5);
+      this.rot = rand(0, Math.PI * 2);
+      this.rotSpeed = rand(-0.02, 0.02);
+      this.scale = rand(0.2, 1.2);
+      this.size = BASE_SIZE + Math.random() * SIZE_VARIANCE;
+      this.life = rand(200, 1200);
+      this.maxLife = this.life;
+      this.img = images[randInt(0, images.length - 1)];
+      this.effect = randInt(0, 3); // verschiedene Effekte
+    }
+
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.rot += this.rotSpeed;
+      this.life--;
+
+      if (
+        this.life <= 0 ||
+        this.x < -300 || this.x > canvas.width + 300 ||
+        this.y < -300 || this.y > canvas.height + 300
+      ) {
+        this.reset();
+      }
+    }
+
+    draw(ctx) {
+      const t = this.life / this.maxLife;
+
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rot);
+
+      switch (this.effect) {
+        case 0: // Fade
+          ctx.globalAlpha = t;
+          break;
+        case 1: // Pulsieren
+          ctx.globalAlpha = 0.8;
+          ctx.scale(1 + Math.sin(t * Math.PI * 6) * 0.2, 1);
+          break;
+        case 2: // Additive
+          ctx.globalAlpha = 0.6;
+          ctx.globalCompositeOperation = "lighter";
+          break;
+        case 3: // Verzerren
+          ctx.globalAlpha = 0.7;
+          ctx.scale(1, 0.5 + t);
+          break;
+      }
+
+      const s = this.size * this.scale;
+      ctx.drawImage(this.img, -s / 2, -s / 2, s, s);
+
+      ctx.restore();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  const entities = [];
+
+  function spawn() {
+    for (let i = 0; i < SPAWN_PER_FRAME && entities.length < MAX_ENTITIES; i++) {
+      entities.push(new Entity());
+    }
+  }
+
+  function loop() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    spawn();
+
+    for (let i = 0; i < entities.length; i++) {
+      const e = entities[i];
+      e.update();
+      e.draw(ctx);
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  // Start erst wenn mindestens ein Bild geladen ist
+  const wait = setInterval(() => {
+    if (loaded > 0) {
+      clearInterval(wait);
+      loop();
+    }
+  }, 50);
+
+})();
+</script>
+</body>
+</html>
