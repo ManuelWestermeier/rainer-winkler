@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Canvas Image Storm – CORS + Fullscreen + Sound</title>
+<title>Canvas Image Storm – Rainer Winkler – Fullscreen + Generated Audio</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html, body {
@@ -33,7 +33,7 @@ canvas {
 </head>
 <body>
 <canvas id="canvas"></canvas>
-<div id="hint">Click oder F drücken für Fullscreen</div>
+<div id="hint">Click oder F drücken für Fullscreen + Sound</div>
 
 <script>
 "use strict";
@@ -66,26 +66,22 @@ function toggleFullscreen() {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
       .then(() => {
-        console.log("ENTER FULLSCREEN");
         hint.classList.add("hidden");
-        startAudio();
+        startGeneratedAudio();
       })
       .catch(e => console.error("FULLSCREEN FAILED", e));
   } else {
-    document.exitFullscreen()
-      .then(() => console.log("EXIT FULLSCREEN"))
-      .catch(e => console.error("EXIT FULLSCREEN FAILED", e));
+    document.exitFullscreen().catch(e=>console.error(e));
   }
 }
 
 document.addEventListener("keydown", e => {
-  if (e.key === "f" || e.key === "F") {
-    toggleFullscreen();
-  }
+  if (e.key === "f" || e.key === "F") toggleFullscreen();
 });
 
 document.addEventListener("pointerdown", () => {
   if (!document.fullscreenElement) toggleFullscreen();
+  startGeneratedAudio();
 });
 
 document.addEventListener("fullscreenchange", resize);
@@ -106,89 +102,119 @@ let readyImages = 0;
 
 RAW_IMAGES.forEach((url, i) => {
   const img = new Image();
-  img.onload = () => {
-    readyImages++;
-    console.log("IMAGE OK", i);
-  };
-  img.onerror = e => console.error("IMAGE FAIL", i, url, e);
+  img.onload = () => readyImages++;
+  img.onerror = e => console.error("IMAGE FAIL", url, e);
   img.src = PROXY + encodeURIComponent(url);
   images.push(img);
 });
 
 /* ======================
-   AUDIO (RANDOM)
+   GENERATED WAV AUDIO
    ====================== */
-const AUDIO_URLS = [
-  "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg",
-  "https://actions.google.com/sounds/v1/cartoon/boing.ogg",
-  "https://actions.google.com/sounds/v1/cartoon/pop.ogg",
-  "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"
-];
+const SAMPLE_RATE = 44100;
+const DURATION = 60;
+const TOTAL = SAMPLE_RATE * DURATION;
 
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-const audioBuffers = [];
-let audioStarted = false;
+let audioURL = null;
+let audioEl = null;
 
-function loadSound(url) {
-  fetch(url)
-    .then(r => r.arrayBuffer())
-    .then(b => audioCtx.decodeAudioData(b))
-    .then(buf => {
-      audioBuffers.push(buf);
-      console.log("SOUND OK", url);
-    })
-    .catch(e => console.error("SOUND FAIL", url, e));
+function clamp(v){ return Math.max(-1, Math.min(1, v)); }
+
+function encodeWAV(samples) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+
+  const write = (o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i,s.charCodeAt(i)); };
+
+  write(0,"RIFF");
+  view.setUint32(4,36+samples.length*2,true);
+  write(8,"WAVE");
+  write(12,"fmt ");
+  view.setUint32(16,16,true);
+  view.setUint16(20,1,true);
+  view.setUint16(22,1,true);
+  view.setUint32(24,SAMPLE_RATE,true);
+  view.setUint32(28,SAMPLE_RATE*2,true);
+  view.setUint16(32,2,true);
+  view.setUint16(34,16,true);
+  write(36,"data");
+  view.setUint32(40,samples.length*2,true);
+
+  let o=44;
+  for(let i=0;i<samples.length;i++,o+=2)
+    view.setInt16(o,samples[i]*0x7fff,true);
+
+  return new Blob([buffer],{type:"audio/wav"});
 }
 
-AUDIO_URLS.forEach(loadSound);
+function generateWav() {
+  const data = new Float32Array(TOTAL);
+  const scale = [110,147,196,220,247,294,330,392];
+  let freq = scale[(Math.random()*scale.length)|0];
+  let phase = 0;
 
-function playRandomSound() {
-  if (!audioStarted || audioBuffers.length === 0) return;
-  const src = audioCtx.createBufferSource();
-  src.buffer = audioBuffers[(Math.random() * audioBuffers.length) | 0];
-  src.connect(audioCtx.destination);
-  src.start();
+  for(let i=0;i<TOTAL;i++){
+    const t=i/SAMPLE_RATE;
+    if(Math.random()<1/(SAMPLE_RATE*0.8))
+      freq = scale[(Math.random()*scale.length)|0]*(Math.random()<0.2?2:1);
+
+    phase+=2*Math.PI*freq/SAMPLE_RATE;
+    let s=Math.sin(phase);
+    let n=(Math.random()*2-1)*0.5;
+    let lfo=Math.sin(t*2*Math.PI*0.25);
+    let v=(s*(0.6+lfo*0.4)+n);
+    v=Math.tanh(v*3);
+    v*=0.8+0.2*Math.sin(t*2*Math.PI*0.05);
+    data[i]=clamp(v);
+  }
+
+  return encodeWAV(data);
 }
 
-function startAudio() {
-  if (audioStarted) return;
-  audioCtx.resume().then(() => {
-    audioStarted = true;
-    console.log("AUDIO STARTED");
-    setInterval(() => {
-      if (Math.random() < 0.4) playRandomSound();
-    }, 500 + Math.random() * 1000);
-  });
+function startGeneratedAudio() {
+  if (audioEl) {
+    audioEl.play().catch(()=>{});
+    return;
+  }
+
+  const blob = generateWav();
+  audioURL = URL.createObjectURL(blob);
+  audioEl = new Audio(audioURL);
+  audioEl.loop = true;
+  audioEl.volume = 1.0;
+
+  audioEl.play()
+    .then(()=>console.log("GENERATED AUDIO PLAYING"))
+    .catch(e=>console.error("AUDIO BLOCKED",e));
 }
 
 /* ======================
    RANDOM
    ====================== */
-const R = (a,b)=>Math.random()*(b-a)+a;
-const RI = (a,b)=>(Math.random()*(b-a+1)|0)+a;
+const R=(a,b)=>Math.random()*(b-a)+a;
+const RI=(a,b)=>(Math.random()*(b-a+1)|0)+a;
 
 /* ======================
    PARTICLES
    ====================== */
-const MAX = 3000;
-const ADD = 40;
-const parts = [];
+const MAX=3000, ADD=40;
+const parts=[];
 
-class Particle {
-  reset() {
-    this.x = R(0, canvas.width);
-    this.y = R(0, canvas.height);
-    this.vx = R(-2,2);
-    this.vy = R(-2,2);
-    this.r = R(0,Math.PI*2);
-    this.rs = R(-0.06,0.06);
-    this.s = R(30,180);
-    this.life = RI(300,1400);
-    this.max = this.life;
-    this.fx = RI(0,3);
-    this.img = images[RI(0, images.length-1)];
+class Particle{
+  constructor(){this.reset();}
+  reset(){
+    this.x=R(0,canvas.width);
+    this.y=R(0,canvas.height);
+    this.vx=R(-2,2);
+    this.vy=R(-2,2);
+    this.r=R(0,Math.PI*2);
+    this.rs=R(-0.06,0.06);
+    this.s=R(30,180);
+    this.life=RI(300,1400);
+    this.max=this.life;
+    this.fx=RI(0,3);
+    this.img=images[RI(0,images.length-1)];
   }
-  constructor(){ this.reset(); }
   update(){
     this.x+=this.vx;
     this.y+=this.vy;
@@ -216,25 +242,17 @@ class Particle {
    LOOP
    ====================== */
 function loop(){
-  try {
-    ctx.fillStyle="#000";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    for(let i=0;i<ADD && parts.length<MAX;i++)
-      parts.push(new Particle());
-    for(const p of parts){
-      p.update();
-      p.draw();
-    }
-  } catch(e) {
-    console.error("RENDER ERROR",e);
-  }
+  ctx.fillStyle="#000";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<ADD && parts.length<MAX;i++) parts.push(new Particle());
+  for(const p of parts){ p.update(); p.draw(); }
   requestAnimationFrame(loop);
 }
 
 /* ======================
    START
    ====================== */
-const wait = setInterval(()=>{
+const wait=setInterval(()=>{
   if(readyImages>0){
     clearInterval(wait);
     loop();
