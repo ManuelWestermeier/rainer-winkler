@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Canvas Image Storm – Rainer Winkler – ULTRA AUDIO</title>
+<title>Canvas Image Storm – Rainer Winkler – INSANE AUDIO</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 html, body {
@@ -84,82 +84,57 @@ RAW_IMAGES.forEach(u=>{
 });
 
 /* ======================
-   GENERATED WAV – EXTREME
+   GENERATED WAV – CRAZY
    ====================== */
-const SR = 44100;
-const DUR = 60;
-const TOTAL = SR * DUR;
-let audioEl = null;
+const SR=44100;
+const DUR=60;
+const TOTAL=SR*DUR;
+let audioEl=null;
 
-const clamp = v => Math.max(-1, Math.min(1, v));
+const clamp=v=>Math.max(-1,Math.min(1,v));
 
 function encodeWAV(samples){
   const b=new ArrayBuffer(44+samples.length*2);
   const v=new DataView(b);
   const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
-  w(0,"RIFF"); v.setUint32(4,36+samples.length*2,true);
-  w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true);
-  v.setUint16(20,1,true); v.setUint16(22,1,true);
-  v.setUint32(24,SR,true); v.setUint32(28,SR*2,true);
-  v.setUint16(32,2,true); v.setUint16(34,16,true);
-  w(36,"data"); v.setUint32(40,samples.length*2,true);
+  w(0,"RIFF");v.setUint32(4,36+samples.length*2,true);
+  w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);
+  v.setUint16(32,2,true);v.setUint16(34,16,true);
+  w(36,"data");v.setUint32(40,samples.length*2,true);
   let o=44;
   for(let i=0;i<samples.length;i++,o+=2)
     v.setInt16(o,samples[i]*0x7fff,true);
   return new Blob([b],{type:"audio/wav"});
 }
 
-function generateUltraWav(){
-  const d = new Float32Array(TOTAL);
-
-  let baseFreq = 220;
-  let phase = 0;
-  let fmPhase = 0;
-  let gainSpike = 1;
+function generateInsaneWav(){
+  const d=new Float32Array(TOTAL);
+  const scale=[55,73,110,147,196,220,294,392,440];
+  let f=scale[(Math.random()*scale.length)|0];
+  let ph=0, peak=1;
 
   for(let i=0;i<TOTAL;i++){
-    const t = i / SR;
+    const t=i/SR;
 
-    /* --- RANDOM EVENTS --- */
-    if(Math.random() < 1/(SR*0.2))
-      baseFreq = 100 + Math.random()*18000;          // extreme highs
+    if(Math.random()<1/(SR*0.15)) f=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?4:1);
+    if(Math.random()<1/(SR*0.5)) peak=3+Math.random()*6;
 
-    if(Math.random() < 1/(SR*0.4))
-      gainSpike = 4 + Math.random()*12;              // massive peaks
+    ph+=2*Math.PI*f/SR;
+    let s=Math.sin(ph)+Math.sin(ph*0.5)*0.7;
+    let n=(Math.random()*2-1)*0.9;
 
-    if(Math.random() < 1/(SR*0.1))
-      fmPhase = Math.random()*Math.PI*2;
+    let v=s*1.5+n;
+    v*=peak*(0.6+Math.sin(t*40)*0.4);
 
-    /* --- FM + BEEP --- */
-    const fmFreq = 20 + Math.random()*8000;
-    fmPhase += 2*Math.PI*fmFreq/SR;
-    const fm = Math.sin(fmPhase) * (2000 + Math.random()*8000);
+    // wavefold + hard clip
+    v=Math.sin(v*3);
+    v=Math.tanh(v*4);
 
-    phase += 2*Math.PI*(baseFreq + fm)/SR;
-
-    let beepEnv = Math.random() < 1/(SR*0.05)
-      ? Math.exp(-((i%400)/80))
-      : 0;
-
-    let s =
-      Math.sin(phase) * (0.6 + beepEnv*4) +
-      Math.sin(phase*2.7) * 0.5;
-
-    /* --- NOISE BURSTS --- */
-    let n = (Math.random()*2-1) * (Math.random()<0.02 ? 2 : 0.6);
-
-    let v = (s + n) * gainSpike;
-
-    /* --- DESTRUCTION STAGE --- */
-    v = Math.sin(v*6);       // wavefold
-    v = Math.tanh(v*5);      // hard clip
-    v = Math.round(v*16)/16;// bitcrush
-
-    d[i] = clamp(v);
-
-    gainSpike *= 0.998;      // decay peak
+    d[i]=clamp(v);
+    peak*=0.9995;
   }
-
   return encodeWAV(d);
 }
 
@@ -168,11 +143,11 @@ function startGeneratedAudio(){
     audioEl.play().catch(()=>{});
     return;
   }
-  const blob = generateUltraWav();
-  const url = URL.createObjectURL(blob);
-  audioEl = new Audio(url);
-  audioEl.loop = true;
-  audioEl.volume = 1.0;
+  const blob=generateInsaneWav();
+  const url=URL.createObjectURL(blob);
+  audioEl=new Audio(url);
+  audioEl.loop=true;
+  audioEl.volume=1.0;
   audioEl.play().catch(()=>{});
 }
 
@@ -181,7 +156,7 @@ function startGeneratedAudio(){
    ====================== */
 const R=(a,b)=>Math.random()*(b-a)+a;
 const RI=(a,b)=>(Math.random()*(b-a+1)|0)+a;
-const MAX=3000, ADD=40;
+const MAX=3000,ADD=40;
 const parts=[];
 
 class P{
@@ -189,15 +164,15 @@ class P{
   reset(){
     this.x=R(0,canvas.width);
     this.y=R(0,canvas.height);
-    this.vx=R(-2,2); this.vy=R(-2,2);
-    this.r=R(0,Math.PI*2); this.rs=R(-0.06,0.06);
+    this.vx=R(-2,2);this.vy=R(-2,2);
+    this.r=R(0,Math.PI*2);this.rs=R(-0.06,0.06);
     this.s=R(30,180);
-    this.life=RI(300,1400); this.max=this.life;
+    this.life=RI(300,1400);this.max=this.life;
     this.fx=RI(0,3);
     this.img=images[RI(0,images.length-1)];
   }
   update(){
-    this.x+=this.vx; this.y+=this.vy; this.r+=this.rs;
+    this.x+=this.vx;this.y+=this.vy;this.r+=this.rs;
     if(--this.life<=0) this.reset();
   }
   draw(){
@@ -223,13 +198,13 @@ class P{
 function loop(){
   ctx.fillStyle="#000";
   ctx.fillRect(0,0,canvas.width,canvas.height);
-  for(let i=0;i<ADD && parts.length<MAX;i++) parts.push(new P());
-  for(const p of parts){ p.update(); p.draw(); }
+  for(let i=0;i<ADD&&parts.length<MAX;i++) parts.push(new P());
+  for(const p of parts){p.update();p.draw();}
   requestAnimationFrame(loop);
 }
 
 const wait=setInterval(()=>{
-  if(readyImages>0){ clearInterval(wait); loop(); }
+  if(readyImages>0){clearInterval(wait);loop();}
 },200);
 </script>
 </body>
