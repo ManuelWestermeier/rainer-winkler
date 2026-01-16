@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8" />
 
-<title>Rainer Winkler Meme Page – Drachenlord | Canvas Image Storm mit Audio</title>
+<title>Rainer Winkler Meme Page – Drachenlord | Canvas Image Storm mit INSANE AUDIO</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="google-site-verification" content="2i7xhV9hW_Xw6NHQ2fxaW4xpA0le9jGL_9OdhOXz9jGL" />
 
 <!-- === SEO META === -->
-<meta name="description" content="Rainer Winkler Meme Page (Drachenlord). Interaktive HTML5 Canvas Animation mit Meme-Bildern, Partikeln und generiertem Audio. Fullscreen Erlebnis mit Sound." />
+<meta name="description" content="Rainer Winkler Meme Page (Drachenlord). Interaktive HTML5 Canvas Animation mit Meme-Bildern, Partikeln und generiertem INSANE Audio. Fullscreen Erlebnis mit Sound." />
 <meta name="keywords" content="Rainer Winkler, Drachenlord, Meme, Rainer Winkler Meme Page, Drachenlord Meme, Canvas Animation, HTML5, Audio, Internet Meme" />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href="http://rainer-winkler.onrender.com/" />
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website" />
 <meta property="og:locale" content="de_DE" />
 <meta property="og:title" content="Rainer Winkler Meme Page – Drachenlord | Canvas Image Storm" />
-<meta property="og:description" content="Interaktive Meme-Seite über Rainer Winkler (Drachenlord) mit Canvas-Animation und generiertem Sound." />
+<meta property="og:description" content="Interaktive Meme-Seite über Rainer Winkler (Drachenlord) mit Canvas-Animation und INSANE generiertem Audio." />
 <meta property="og:url" content="http://rainer-winkler.onrender.com/" />
 <meta property="og:site_name" content="Rainer Winkler Meme Page" />
 <meta property="og:image" content="https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp" />
@@ -26,7 +26,7 @@
 <!-- === Twitter Card === -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Rainer Winkler Meme Page – Drachenlord" />
-<meta name="twitter:description" content="Canvas Meme Animation mit Audio rund um Rainer Winkler (Drachenlord)." />
+<meta name="twitter:description" content="Canvas Meme Animation mit INSANE Audio rund um Rainer Winkler (Drachenlord)." />
 <meta name="twitter:image" content="https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp" />
 
 <!-- === Structured Data === -->
@@ -36,7 +36,7 @@
   "@type": "WebPage",
   "name": "Rainer Winkler Meme Page",
   "url": "http://rainer-winkler.onrender.com/",
-  "description": "Interaktive Meme-Seite über Rainer Winkler (Drachenlord) mit Canvas-Animation und generiertem Audio.",
+  "description": "Interaktive Meme-Seite über Rainer Winkler (Drachenlord) mit Canvas-Animation und INSANE generiertem Audio.",
   "keywords": [
     "Rainer Winkler",
     "Drachenlord",
@@ -67,7 +67,6 @@ canvas { display: block; }
   font-size: 12px;
   opacity: 0.6;
   pointer-events: none;
-  z-index: 10;
 }
 .hidden { display: none; }
 
@@ -123,7 +122,7 @@ addEventListener("pointerdown", ()=>{
 });
 
 /* ======================
-   IMAGES
+   IMAGES (CORS)
    ====================== */
 const PROXY="https://corsproxy.io/?";
 const RAW_IMAGES=[
@@ -142,9 +141,11 @@ RAW_IMAGES.forEach(u=>{
 });
 
 /* ======================
-   GENERATED AUDIO
+   GENERATED WAV – INSANE AUDIO
    ====================== */
-const SR=44100, DUR=60, TOTAL=SR*DUR;
+const SR=44100;
+const DUR=60;
+const TOTAL=SR*DUR;
 let audioEl=null;
 const clamp=v=>Math.max(-1,Math.min(1,v));
 
@@ -166,35 +167,43 @@ function encodeWAV(samples){
 
 function generateInsaneWav(){
   const d=new Float32Array(TOTAL);
-  const scale=[220, 261, 329, 392, 440, 523, 659, 784, 880];
-  let mainF=scale[(Math.random()*scale.length)|0], ph=0, peak=1;
+  const scale=[55,73,110,147,196,220,294,392,440];
+  let f=scale[(Math.random()*scale.length)|0];
+  let ph=0, peak=1;
 
   for(let i=0;i<TOTAL;i++){
     const t=i/SR;
 
-    let melFreq=0;
-    if(Math.random()<1/(SR*0.2)) melFreq=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?2:1);
+    if(Math.random()<1/(SR*0.15)) f=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?4:1);
+    if(Math.random()<1/(SR*0.5)) peak=3+Math.random()*6;
 
-    if(Math.random()<1/(SR*0.1)) mainF=scale[(Math.random()*scale.length)|0]*(0.5+Math.random()*1.5);
-    if(Math.random()<1/(SR*0.3)) peak=2+Math.random()*5;
+    ph+=2*Math.PI*f/SR;
+    let s=Math.sin(ph)+Math.sin(ph*0.5)*0.7;
+    let n=(Math.random()*2-1)*0.9;
 
-    ph+=2*Math.PI*(mainF + melFreq)/SR;
+    let v=s*1.5+n;
+    v*=peak*(0.6+Math.sin(t*40)*0.4);
 
-    let v=(Math.sin(ph) + Math.sin(ph*2)*0.5) + (Math.random()*2-1)*0.7;
-    v=Math.tanh(Math.sin(v*5 + Math.sin(t*80)*0.3)*4)*peak*(0.5+Math.sin(t*60)*0.5);
+    // wavefold + hard clip
+    v=Math.sin(v*3);
+    v=Math.tanh(v*4);
+
     d[i]=clamp(v);
-
-    peak*=0.9997;
+    peak*=0.9995;
   }
   return encodeWAV(d);
 }
 
 function startGeneratedAudio(){
-  if(audioEl){ audioEl.play().catch(()=>{}); return; }
-  const url=URL.createObjectURL(generateInsaneWav());
+  if(audioEl){
+    audioEl.play().catch(()=>{});
+    return;
+  }
+  const blob=generateInsaneWav();
+  const url=URL.createObjectURL(blob);
   audioEl=new Audio(url);
   audioEl.loop=true;
-  audioEl.volume=1;
+  audioEl.volume=1.0;
   audioEl.play().catch(()=>{});
 }
 
