@@ -6,7 +6,7 @@
 <title>Rainer Winkler Meme Page – Drachenlord | Canvas Image Storm mit Audio</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="google-site-verification" content="2i7xhV9hW_Xw6NHQ2fxaW4xpA0le9jGL_9OdhOXz9aE" />
+<meta name="google-site-verification" content="2i7xhV9hW_Xw6NHQ2fxaW4xpA0le9jGL_9OdhOXz9jGL" />
 
 <!-- === SEO META === -->
 <meta name="description" content="Rainer Winkler Meme Page (Drachenlord). Interaktive HTML5 Canvas Animation mit Meme-Bildern, Partikeln und generiertem Audio. Fullscreen Erlebnis mit Sound." />
@@ -166,17 +166,25 @@ function encodeWAV(samples){
 
 function generateInsaneWav(){
   const d=new Float32Array(TOTAL);
-  const scale=[55,73,110,147,196,220,294,392,440];
-  let f=scale[(Math.random()*scale.length)|0], ph=0, peak=1;
+  const scale=[220, 261, 329, 392, 440, 523, 659, 784, 880];
+  let mainF=scale[(Math.random()*scale.length)|0], ph=0, peak=1;
+
   for(let i=0;i<TOTAL;i++){
     const t=i/SR;
-    if(Math.random()<1/(SR*0.15)) f=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?4:1);
-    if(Math.random()<1/(SR*0.5)) peak=3+Math.random()*6;
-    ph+=2*Math.PI*f/SR;
-    let v=(Math.sin(ph)+Math.sin(ph*0.5)*0.7)+(Math.random()*2-1)*0.9;
-    v=Math.tanh(Math.sin(v*3)*4)*peak*(0.6+Math.sin(t*40)*0.4);
+
+    let melFreq=0;
+    if(Math.random()<1/(SR*0.2)) melFreq=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?2:1);
+
+    if(Math.random()<1/(SR*0.1)) mainF=scale[(Math.random()*scale.length)|0]*(0.5+Math.random()*1.5);
+    if(Math.random()<1/(SR*0.3)) peak=2+Math.random()*5;
+
+    ph+=2*Math.PI*(mainF + melFreq)/SR;
+
+    let v=(Math.sin(ph) + Math.sin(ph*2)*0.5) + (Math.random()*2-1)*0.7;
+    v=Math.tanh(Math.sin(v*5 + Math.sin(t*80)*0.3)*4)*peak*(0.5+Math.sin(t*60)*0.5);
     d[i]=clamp(v);
-    peak*=0.9995;
+
+    peak*=0.9997;
   }
   return encodeWAV(d);
 }
