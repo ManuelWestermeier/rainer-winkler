@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+
+<title>Rainer Winkler Meme Page – Drachenlord | Canvas Image Storm mit INSANE AUDIO</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="google-site-verification" content="2i7xhV9hW_Xw6NHQ2fxaW4xpA0le9jGL_9OdhOXz9jGL" />
+
+<!-- === SEO META === -->
+<meta name="description" content="Rainer Winkler Meme Page (Drachenlord). Interaktive HTML5 Canvas Animation mit Meme-Bildern, Partikeln und generiertem INSANE Audio. Fullscreen Erlebnis mit Sound." />
+<meta name="keywords" content="Rainer Winkler, Drachenlord, Meme, Rainer Winkler Meme Page, Drachenlord Meme, Canvas Animation, HTML5, Audio, Internet Meme" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href="http://rainer-winkler.onrender.com/" />
+
+<!-- === Open Graph === -->
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="de_DE" />
+<meta property="og:title" content="Rainer Winkler Meme Page – Drachenlord | Canvas Image Storm" />
+<meta property="og:description" content="Interaktive Meme-Seite über Rainer Winkler (Drachenlord) mit Canvas-Animation und INSANE generiertem Audio." />
+<meta property="og:url" content="http://rainer-winkler.onrender.com/" />
+<meta property="og:site_name" content="Rainer Winkler Meme Page" />
+<meta property="og:image" content="https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp" />
+
+<!-- === Twitter Card === -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Rainer Winkler Meme Page – Drachenlord" />
+<meta name="twitter:description" content="Canvas Meme Animation mit INSANE Audio rund um Rainer Winkler (Drachenlord)." />
+<meta name="twitter:image" content="https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp" />
+
+<!-- === Structured Data === -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Rainer Winkler Meme Page",
+  "url": "http://rainer-winkler.onrender.com/",
+  "description": "Interaktive Meme-Seite über Rainer Winkler (Drachenlord) mit Canvas-Animation und INSANE generiertem Audio.",
+  "keywords": [
+    "Rainer Winkler",
+    "Drachenlord",
+    "Meme",
+    "Canvas",
+    "HTML5",
+    "Audio"
+  ]
+}
+</script>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+}
+canvas { display: block; }
+#hint {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  color: #0f0;
+  font-family: monospace;
+  font-size: 12px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.hidden { display: none; }
+
+/* SEO / Accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<h1 class="sr-only">Rainer Winkler Meme Page – Drachenlord Canvas Animation</h1>
+
+<canvas id="canvas" aria-label="Rainer Winkler Meme Canvas Animation"></canvas>
+<div id="hint">Click oder F drücken für Fullscreen + Sound</div>
+
+<script>
+"use strict";
+
+/* ======================
+   CANVAS + FULLSCREEN
+   ====================== */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const hint = document.getElementById("hint");
+
+function resize(){
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+addEventListener("resize", resize);
+resize();
+
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().then(()=>{
+      hint.classList.add("hidden");
+      startGeneratedAudio();
+    });
+  }
+}
+addEventListener("keydown", e=>{
+  if(e.key==="f"||e.key==="F") toggleFullscreen();
+});
+addEventListener("pointerdown", ()=>{
+  toggleFullscreen();
+  startGeneratedAudio();
+});
+
+/* ======================
+   IMAGES (CORS)
+   ====================== */
+const PROXY="https://corsproxy.io/?";
+const RAW_IMAGES=[
+  "https://media0.faz.net/image/w1240/2e9380d6be6a/w1920h864x0y168/202212/1.8543712/rainer-winkler-alias.webp",
+  "https://www.watson.ch/imgdb/1ac5/Qx,A,0,0,768,432,320,180,128,72/3037309909412135",
+  "https://i.etsystatic.com/54136756/r/il/e05fa7/7019977722/il_1588xN.7019977722_a2es.jpg",
+  "https://www.merkur.de/assets/images/27/311/27311552-rainer-winkler-drachenlord-youtube-screenshot-hate-speech-2H6T5427XkMH.jpg"
+];
+const images=[];
+let readyImages=0;
+RAW_IMAGES.forEach(u=>{
+  const i=new Image();
+  i.onload=()=>readyImages++;
+  i.src=PROXY+encodeURIComponent(u);
+  images.push(i);
+});
+
+/* ======================
+   GENERATED WAV – INSANE AUDIO
+   ====================== */
+const SR=44100;
+const DUR=60;
+const TOTAL=SR*DUR;
+let audioEl=null;
+const clamp=v=>Math.max(-1,Math.min(1,v));
+
+function encodeWAV(samples){
+  const b=new ArrayBuffer(44+samples.length*2);
+  const v=new DataView(b);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  w(0,"RIFF");v.setUint32(4,36+samples.length*2,true);
+  w(8,"WAVE");w(12,"fmt ");v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);
+  v.setUint16(32,2,true);v.setUint16(34,16,true);
+  w(36,"data");v.setUint32(40,samples.length*2,true);
+  let o=44;
+  for(let i=0;i<samples.length;i++,o+=2)
+    v.setInt16(o,samples[i]*0x7fff,true);
+  return new Blob([b],{type:"audio/wav"});
+}
+
+function generateInsaneWav(){
+  const d=new Float32Array(TOTAL);
+  const scale=[55,73,110,147,196,220,294,392,440];
+  let f=scale[(Math.random()*scale.length)|0];
+  let ph=0, peak=1;
+
+  for(let i=0;i<TOTAL;i++){
+    const t=i/SR;
+
+    if(Math.random()<1/(SR*0.15)) f=scale[(Math.random()*scale.length)|0]*(Math.random()<0.3?4:1);
+    if(Math.random()<1/(SR*0.5)) peak=3+Math.random()*6;
+
+    ph+=2*Math.PI*f/SR;
+    let s=Math.sin(ph)+Math.sin(ph*0.5)*0.7;
+    let n=(Math.random()*2-1)*0.9;
+
+    let v=s*1.5+n;
+    v*=peak*(0.6+Math.sin(t*40)*0.4);
+
+    // wavefold + hard clip
+    v=Math.sin(v*3);
+    v=Math.tanh(v*4);
+
+    d[i]=clamp(v);
+    peak*=0.9995;
+  }
+  return encodeWAV(d);
+}
+
+function startGeneratedAudio(){
+  if(audioEl){
+    audioEl.play().catch(()=>{});
+    return;
+  }
+  const blob=generateInsaneWav();
+  const url=URL.createObjectURL(blob);
+  audioEl=new Audio(url);
+  audioEl.loop=true;
+  audioEl.volume=1.0;
+  audioEl.play().catch(()=>{});
+}
+
+/* ======================
+   PARTICLES
+   ====================== */
+const R=(a,b)=>Math.random()*(b-a)+a;
+const RI=(a,b)=>(Math.random()*(b-a+1)|0)+a;
+const MAX=3000,ADD=40;
+const parts=[];
+
+class P{
+  constructor(){this.reset();}
+  reset(){
+    this.x=R(0,canvas.width);
+    this.y=R(0,canvas.height);
+    this.vx=R(-2,2);this.vy=R(-2,2);
+    this.r=R(0,Math.PI*2);this.rs=R(-0.06,0.06);
+    this.s=R(30,180);
+    this.life=RI(300,1400);this.max=this.life;
+    this.fx=RI(0,3);
+    this.img=images[RI(0,images.length-1)];
+  }
+  update(){
+    this.x+=this.vx;this.y+=this.vy;this.r+=this.rs;
+    if(--this.life<=0) this.reset();
+  }
+  draw(){
+    if(!this.img.complete) return;
+    const t=this.life/this.max;
+    ctx.save();
+    ctx.translate(this.x,this.y);
+    ctx.rotate(this.r);
+    if(this.fx===0) ctx.globalAlpha=t;
+    if(this.fx===1) ctx.scale(1+Math.sin(t*6)*0.3,1);
+    if(this.fx===2) ctx.globalCompositeOperation="lighter";
+    if(this.fx===3) ctx.scale(1,t+0.2);
+    ctx.drawImage(this.img,-this.s/2,-this.s/2,this.s,this.s);
+    ctx.restore();
+    ctx.globalAlpha=1;
+    ctx.globalCompositeOperation="source-over";
+  }
+}
+
+/* ======================
+   LOOP
+   ====================== */
+function loop(){
+  ctx.fillStyle="#000";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<ADD&&parts.length<MAX;i++) parts.push(new P());
+  for(const p of parts){p.update();p.draw();}
+  requestAnimationFrame(loop);
+}
+
+const wait=setInterval(()=>{
+  if(readyImages>0){clearInterval(wait);loop();}
+},200);
+</script>
+</body>
+</html>
